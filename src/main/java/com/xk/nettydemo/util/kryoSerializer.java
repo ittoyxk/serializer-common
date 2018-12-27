@@ -1,0 +1,178 @@
+package com.xk.nettydemo.util;
+
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.BeanSerializer;
+
+/**
+ * Description: 基于kyro的序列化/反序列化工具
+ * Created by: hengxiaokang
+ * on 2018/12/27 15:53
+ */
+public class kryoSerializer implements Serializer {
+
+    // 由于kryo不是线程安全的，所以每个线程都使用独立的kryo
+    final ThreadLocal<Kryo> kryoLocal = new ThreadLocal<Kryo>() {
+        @Override
+        protected Kryo initialValue()
+        {
+            Kryo kryo = new Kryo();
+            kryo.register(ct, new BeanSerializer<>(kryo, ct));
+            return kryo;
+        }
+    };
+
+    final ThreadLocal<Output> outputLocal = new ThreadLocal<Output>();
+    final ThreadLocal<Input> inputLocal = new ThreadLocal<Input>();
+    private Class<?> ct = null;
+
+    public kryoSerializer(Class<?> ct)
+    {
+        this.ct = ct;
+    }
+
+    public Class<?> getCt()
+    {
+        return ct;
+    }
+
+    public void setCt(Class<?> ct)
+    {
+        this.ct = ct;
+    }
+
+    /**
+     * 序列化
+     *
+     * @param obj
+     */
+    @Override
+    public  <T> byte[] serialize(T obj)
+    {
+        Kryo kryo = getKryo();
+        byte[] bytes = new byte[100];
+        Output output = getOutput(bytes);
+
+        kryo.writeObjectOrNull(output, obj, obj.getClass());
+
+        output.flush();
+        return bytes;
+    }
+
+    /**
+     * 序列化
+     *
+     * @param obj
+     * @param bytes
+     * @param offset
+     * @param count
+     */
+    @Override
+    public void serialize(Object obj, byte[] bytes, int offset, int count)
+    {
+        Kryo kryo = getKryo();
+        Output output = getOutput(bytes, offset, count);
+        kryo.writeObjectOrNull(output, obj, obj.getClass());
+        output.flush();
+    }
+
+    /**
+     * 反序列化
+     *
+     * @param bytes -字节数组
+     * @return T<T>
+     */
+    @Override
+    public <T> T deserialize(byte[] bytes)
+    {
+        return deserialize(bytes, 0, bytes.length);
+    }
+
+    /**
+     * 反序列化
+     *
+     * @param bytes
+     * @param offset
+     * @param count
+     * @return
+     */
+    @Override
+    public <T> T deserialize(byte[] bytes, int offset, int count)
+    {
+        Kryo kryo = getKryo();
+
+        Input input = getInput(bytes, offset, count);
+
+        return (T) kryo.readObjectOrNull(input, ct);
+    }
+
+    /**
+     * 获取Input
+     *
+     * @param bytes
+     * @param offset
+     * @param count
+     * @return
+     */
+    private Input getInput(byte[] bytes, int offset, int count)
+    {
+        Input input = null;
+        if ((input = inputLocal.get()) == null) {
+            input = new Input();
+            inputLocal.set(input);
+        }
+        if (bytes != null) {
+            input.setBuffer(bytes, offset, count);
+        }
+        return input;
+    }
+
+    /**
+     * 获取Output
+     *
+     * @param bytes
+     * @return
+     */
+    private Output getOutput(byte[] bytes, int offset, int count)
+    {
+        Output output = null;
+        if ((output = outputLocal.get()) == null) {
+            output = new Output();
+            outputLocal.set(output);
+        }
+        if (bytes != null) {
+            output.writeBytes(bytes, offset, count);
+        }
+        return output;
+    }
+
+    /**
+     * 获取Output并设置初始数组
+     *
+     * @param bytes
+     * @return
+     */
+    private Output getOutput(byte[] bytes)
+    {
+        Output output = null;
+        if ((output = outputLocal.get()) == null) {
+            output = new Output();
+            outputLocal.set(output);
+        }
+        if (bytes != null) {
+            output.setBuffer(bytes);
+        }
+        return output;
+    }
+
+    /**
+     * 获取kryo
+     *
+     * @return
+     */
+    private Kryo getKryo()
+    {
+        return kryoLocal.get();
+    }
+}

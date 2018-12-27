@@ -1,0 +1,18 @@
+syntax = "proto3";
+option java_package = "com.xk.nettydemo.bean";
+option java_outer_classname = "MapDtoModel";
+
+message MaptDto {
+    map<string, string> map =1;
+    map<string, list> mapList=2;
+
+    message list{
+        repeated Result ele=1;
+    }
+    message Result {
+        string url = 1;
+        string title = 2;
+        repeated string snippets = 3;
+    }
+
+}

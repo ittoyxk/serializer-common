@@ -1,0 +1,22 @@
+syntax = "proto3";
+option java_package = "com.xk.nettydemo.bean";
+option java_outer_classname = "TestDtoModel";
+
+message TestDto {
+    bool boolean = 1;
+    double doub = 2;
+    int32 id = 3;
+    string name = 4;
+    bytes b = 5;
+    enum PhoneType {
+        MOBILE = 0;
+        HOME = 1;
+        WORK = 2;
+    }
+    message PhoneNumber {
+        string number = 1;
+    }
+
+    repeated PhoneNumber phones = 6;
+
+}
